@@ -1,18 +1,14 @@
-from dotenv import load_dotenv, find_dotenv
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import DateTime, String,  func, BigInteger, ForeignKey, Column, Integer, Table
 
 
-load_dotenv(find_dotenv())
-
-engine = create_async_engine(os.getenv('DB_LITE_GASU'), echo=True)
-session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
 
 class Base(DeclarativeBase):
     created: Mapped[DateTime] = mapped_column(DateTime, default=func.now())
     updated: Mapped[DateTime] = mapped_column(DateTime, default=func.now(), onupdate=func.now())
+
 
 association_table = Table('user_group', Base.metadata,
             Column('user_id', Integer, ForeignKey('user.id')),
