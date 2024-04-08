@@ -9,8 +9,9 @@ from schedulle.functions import get_groups
 
 load_dotenv(find_dotenv())
 
-engine = create_async_engine(os.getenv('DB_LITE_GASU'), echo=True)
+engine = create_async_engine(os.getenv('DB_LITE_GASU'))
 session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+
 
 async def create_db():
     groups = await get_groups()

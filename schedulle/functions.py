@@ -40,10 +40,10 @@ def get_current_subject(search):
         try:
             return re.sub(r' \(.+?\)', '', json_response["R"][week_day][current_para][week_type]["LESSON"])
         except:
-            return "Общая"
+            return "Общая папка"
     else:
         # error Расписание не найдено
-        return "Общая"
+        return "Общая папка"
 
 # print(get_current_subject('ИСТб-3'))
 async def get_subjects(search):
@@ -63,7 +63,9 @@ async def get_subjects(search):
                                                    week_type_key]["LESSON"]))
                 except:
                     pass
-    return set(all_subjects)
+    all_subjects = sorted(set(all_subjects))
+    all_subjects.append('Общая папка')
+    return all_subjects
 
 # print(get_subjects('ИСТб-3'))
 def get_groups_1():

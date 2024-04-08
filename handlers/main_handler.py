@@ -49,6 +49,8 @@ async def cmd_start(data: Message | CallbackQuery, session: AsyncSession):
             text="Добро пожаловать в GASUfolder!",
             reply_markup=get_callback_btns(btns=start_btns)
         )
+        await data.answer()
+
 
 
 @router.callback_query(F.data == "my_group")
@@ -69,11 +71,11 @@ async def show_my_groups(callback: types.CallbackQuery, session: AsyncSession, s
                                      reply_markup=get_callback_btns(btns=btns,sizes=(2,1)))
 
     await state.set_state(AddGroupStates.choosing_group)
-
+    await callback.answer()
 
 @router.callback_query(F.data == 'add')
 async def enter_group_name(callback: types.CallbackQuery, state: FSMContext):
-    # await state.set_state(AddGroupStates.choosing_group)
+    await state.set_state(AddGroupStates.choosing_group)
 
     msg_id = callback.message.message_id
 
@@ -114,8 +116,8 @@ async def add_group_name(message: Message, session: AsyncSession, state: FSMCont
         )
         await message.delete()
     else:
-        btns = {"Отмена": "back"}
-        text = "Введите корректное название"
+        btns = {"Отмена": "my_group"}
+        text = "Такой группы не существует"
         data_fsm = await state.get_data()
         msg_id = data_fsm['choosing_group']
 
@@ -134,24 +136,21 @@ async def add_group_name(message: Message, session: AsyncSession, state: FSMCont
 @router.callback_query(or_f(F.data.startswith('group_'), F.data.startswith("back_from_file")))
 async def choose_group(callback: CallbackQuery, state: FSMContext, session: AsyncSession):
     group_id = int(callback.data.split('_')[1])
-
     await state.set_state(AddGroupStates.sending_file_from_group)
-
-    btns={'Назад':'my_group'}
 
     group = await orm_get_group_by_id(session, group_id)
     subjects =await get_subjects(group.name)
-    subjects.add('Общая')
+    await create_group_subjects(session, {group.name: subjects})
     subjects_obj = await orm_get_subjects_by_group(session, group.id)
     await state.update_data(sending_file_from_group=(callback.message.message_id, group.name))
 
-    if subjects:
-        await create_group_subjects(session, {group.name: subjects})
-        btns = {subject.name: f'subject_{subject.id}' for subject in subjects_obj}
-        btns['Назад'] = 'my_group'
-        await callback.message.edit_text(
+    # subjects.add('Общая')
+
+    btns = {subject.name: f'subject_{subject.id}' for subject in subjects_obj}
+    btns['Назад'] = 'my_group'
+    await callback.message.edit_text(
             f"{group.name}",
-            reply_markup=get_callback_btns(btns=btns)
+            reply_markup=get_callback_btns(btns=btns,sizes=(1,))
         )
     await callback.answer()
 
