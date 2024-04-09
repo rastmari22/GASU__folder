@@ -1,4 +1,5 @@
 import asyncio
+import kbds
 from sqlalchemy.ext.asyncio import AsyncSession
 from aiogram import Router, F, types, Bot
 from aiogram.filters import Command, StateFilter, CommandStart, or_f
@@ -12,7 +13,7 @@ from database.query import get_user_groups, orm_connect_user_and_group, orm_get_
     orm_get_subject_by_name_and_group_name, add_file, orm_get_subject_by_name, get_user_files_by_subject, \
     orm_get_group_by_group_name, get_file_url, delete_file
 from filters.chat_type import ChatTypeFilter
-from kbds.inline import get_callback_btns
+from kbds.inline import get_callback_btns, btns
 from schedulle.functions import get_subjects, get_current_subject
 
 router = Router()
@@ -34,20 +35,24 @@ class AddGroupStates(StatesGroup):
 
 
 @router.message(CommandStart())
-@router.callback_query(F.data == 'startpoint')
 async def cmd_start(data: Message | CallbackQuery, session: AsyncSession):
-    start_btns = {"Мои группы": "my_group", "help me": "help"}
+
     if isinstance(data, Message):
         user_name = data.chat.username
         await query.orm_add_user(session, user_name)
         await data.answer(
-            text="Добро пожаловать в GASUfolder!",
-            reply_markup=get_callback_btns(btns=start_btns)
+            text="Добро пожаловать в <b>GASUfolder!</b>"
+                 "\n\nЭто бот - твой помощник для сохранения файлов.\n\n"
+                 "Укажи свою группу и присылай файлы, а бот сам опредлит к "
+                 "какому предмет его прикрепить, если ты спешишь и не успеваешь сделать это сам!"
+                 "\n\nНажми ❓ под сообщением, чтобы узнать больше о его способностях"
+                 "",
+            reply_markup=kbds.inline.start_reply_markup
         )
     else:
         await data.message.edit_text(
-            text="Добро пожаловать в GASUfolder!",
-            reply_markup=get_callback_btns(btns=start_btns)
+            text="Добро пожаловать в <strong>GASUfolder!</strong>",
+            reply_markup=kbds.inline.start_reply_markup
         )
         await data.answer()
 
@@ -62,7 +67,7 @@ async def show_my_groups(callback: types.CallbackQuery, session: AsyncSession, s
 
     user_groups = await get_user_groups(session, username)
 
-    btns = {"Добавить": "add", "Назад": "startpoint"}
+    # btns = {"Добавить": "add", "Назад": "startpoint"}
 
     if user_groups:
         btns.update({user_group.name: f'group_{user_group.id}' for user_group in user_groups})
@@ -183,10 +188,6 @@ async def process_file_from_group(message: Message, state: FSMContext, session: 
     await message.delete()
     await message.bot.delete_message(chat_id, message_id)
 
-
-
-
-
 @router.callback_query(or_f(F.data.startswith(f'subject_')))
 async def choose_subject(callback: types.CallbackQuery, state: FSMContext, session: AsyncSession):
     subject_id = int(callback.data.split('_')[1])
@@ -240,7 +241,6 @@ async def choose_subject(callback: types.CallbackQuery, state: FSMContext, sessi
     sent_message_id = sent_message
     await state.update_data(sending_file_from_subject=(sent_message, subj, group.id))
 
-
 @router.message(AddGroupStates.sending_file_from_subject, or_f(F.document, F.photo))
 async def process_file_from_group(message: Message, state: FSMContext, session: AsyncSession):
     username = message.from_user.username
@@ -276,7 +276,6 @@ async def process_file_from_group(message: Message, state: FSMContext, session: 
         await asyncio.sleep(1)
         await message.delete()
         await message.bot.delete_message(chat_id, message_id)
-
 
 @router.callback_query(F.data.startswith('file_'))
 async def send_file_to_user(callback: types.CallbackQuery, state: FSMContext, session: AsyncSession):

@@ -37,3 +37,13 @@ def get_callback_btns(
 # inline_kb_full.add(InlineKeyboardButton(text="query=''", switch_inline_query=''))
 # inline_kb_full.add(InlineKeyboardButton(text="query='qwerty'", switch_inline_query='qwerty'))
 # inline_kb_full.add(InlineKeyboardButton(text="Inline в этом же чате", switch_inline_query_current_chat=''))
+
+start_btns = {"Мои группы": "my_group", "❓": "help"}
+welcome_menu={'❓❗❌✅↩✔🔴🟠🟡🟢🔵🟣🟤⚫🔘🟫🟪🟩🟦🟧🟨🟥⚪'
+              '⬛⬜◼◻◾◽▪▫🔶🔸🔷🔺💬💭🗯🕐🕑🕚🕒🕙🕘🕠🕡🕢🕠🕟🕧🕦'
+              '🕞🕖🕕🕔🕓🕛🕜🕝🕥🕣🕤🐾👾✍🏽🔒🔐🔑🔍📄📤📁📂🗂💼📝'
+              '📌📍🗑✂❤🤍💛🖐🏽🙌🏽✋🏽🖖🏽✌🏽➕➖💲👁‍🗨'}
+start_reply_markup=get_callback_btns(btns=start_btns)
+back_btn={"↩":f""}
+btns = {"➕": "add", "❓": "startpoint"}
+add_reply_markup=get_callback_btns(btns=start_btns)
