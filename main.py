@@ -1,5 +1,7 @@
+import logging
 import os
 import asyncio
+import sys
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -14,7 +16,6 @@ from middlewares.db import DataBaseSession
 
 load_dotenv(find_dotenv())
 TOKEN=os.getenv('BOT_TOKEN')
-
 async def on_startup(bot):
     await create_db()
     # await drop_db()
@@ -34,6 +35,7 @@ async def main():
 
 if __name__ == '__main__':
     try:
+        logging.basicConfig(level=logging.INFO, stream=sys.stdout)
         asyncio.run(main())
     except KeyboardInterrupt:
         print('Бот спит')

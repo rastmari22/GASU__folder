@@ -9,7 +9,7 @@ from schedulle.functions import get_groups
 
 load_dotenv(find_dotenv())
 
-engine = create_async_engine(os.getenv('DB_LITE_GASU'))
+engine = create_async_engine(os.getenv('DB_LITE_GASU'),echo=True)
 session_maker = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 

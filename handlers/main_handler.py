@@ -12,6 +12,7 @@ from database.query import get_user_groups, orm_connect_user_and_group, orm_get_
     orm_get_group_by_id, orm_get_subjects_by_group, create_group_subjects, orm_get_userid_by_name, \
     orm_get_subject_by_name_and_group_name, add_file, orm_get_subject_by_name, get_user_files_by_subject, \
     orm_get_group_by_group_name, get_file_url, delete_file
+from database.query_to_db import has_registration, connect_user_with_group
 from filters.chat_type import ChatTypeFilter
 from kbds.inline import get_callback_btns, btns
 from schedulle.functions import get_subjects, get_current_subject
@@ -19,7 +20,7 @@ from schedulle.functions import get_subjects, get_current_subject
 router = Router()
 router.message.filter(ChatTypeFilter(["private"]))
 
-from database import query
+from database import query, texts, query_to_db
 
 
 class AddGroupStates(StatesGroup):
@@ -36,26 +37,33 @@ class AddGroupStates(StatesGroup):
 
 @router.message(CommandStart())
 async def cmd_start(data: Message | CallbackQuery, session: AsyncSession):
-
-    if isinstance(data, Message):
-        user_name = data.chat.username
+    user_name = data.chat.username
+    if await has_registration(user_name,session):
+        await data.delete()
+    else:
         await query.orm_add_user(session, user_name)
         await data.answer(
-            text="Добро пожаловать в <b>GASUfolder!</b>"
-                 "\n\nЭто бот - твой помощник для сохранения файлов.\n\n"
-                 "Укажи свою группу и присылай файлы, а бот сам опредлит к "
-                 "какому предмет его прикрепить, если ты спешишь и не успеваешь сделать это сам!"
-                 "\n\nНажми ❓ под сообщением, чтобы узнать больше о его способностях"
-                 "",
-            reply_markup=kbds.inline.start_reply_markup
-        )
-    else:
-        await data.message.edit_text(
-            text="Добро пожаловать в <strong>GASUfolder!</strong>",
-            reply_markup=kbds.inline.start_reply_markup
-        )
-        await data.answer()
-
+        text=texts.welcome_text,
+        reply_markup=kbds.inline.start_reply_markup
+    )
+    # if isinstance(data, Message):
+    #     user_name = data.chat.username
+    #     await query.orm_add_user(session, user_name)
+    #     await data.answer(
+    #         text="Добро пожаловать в <b>GASUfolder!</b>"
+    #              "\n\nЭто бот - твой помощник для сохранения файлов.\n\n"
+    #              "Укажи свою группу и присылай файлы, а бот сам опредлит к "
+    #              "какому предмет его прикрепить, если ты спешишь и не успеваешь сделать это сам!"
+    #              "\n\nНажми ❓ под сообщением, чтобы узнать больше о его способностях"
+    #              "",
+    #         reply_markup=kbds.inline.start_reply_markup
+    #     )
+    # else:
+    #     await data.message.edit_text(
+    #         text="Добро пожаловать в <strong>GASUfolder!</strong>",
+    #         reply_markup=kbds.inline.start_reply_markup
+    #     )
+    #     await data.answer()
 
 
 @router.callback_query(F.data == "my_group")
@@ -78,16 +86,15 @@ async def show_my_groups(callback: types.CallbackQuery, session: AsyncSession, s
     await state.set_state(AddGroupStates.choosing_group)
     await callback.answer()
 
-@router.callback_query(F.data == 'add')
+@router.callback_query(F.data == 'add_group')
 async def enter_group_name(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(AddGroupStates.choosing_group)
 
     msg_id = callback.message.message_id
 
     await state.update_data(choosing_group=msg_id)
-
     await callback.message.edit_text(
-        "Введите название группы",reply_markup=get_callback_btns(btns={"отмена": "my_group"}))
+        text=texts.add_group,reply_markup=None)
 
 
 @router.message(AddGroupStates.choosing_group, F.text)
@@ -95,16 +102,16 @@ async def add_group_name(message: Message, session: AsyncSession, state: FSMCont
     new_group_name = message.text
     username = message.chat.username
 
-    exist_group = await group_exist(session, gr_name=new_group_name)
+    # exist_group = await group_exist(session, gr_name=new_group_name)
 
-    if exist_group:
+    if await query_to_db.group_exist(session, gr_name=new_group_name):
 
-        await orm_connect_user_and_group(session, new_group_name, username)
+        await connect_user_with_group(session, new_group_name, username)
 
         user_groups = await get_user_groups(session, username)
 
-        text = "Мои группы"
-        add_and_help = {"Добавить": "add", "help me": "back"}
+        text = "<b>Мои группы</b>"
+        add_and_help = {"Добавить группу": "add_group", "❓": "help"}
         btns = add_and_help
         btns.update({user_group.name: f'group_{user_group.id}' for user_group in user_groups})
 
